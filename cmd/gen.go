@@ -43,6 +43,12 @@ var genCmd = &cobra.Command{
 			case "ts":
 				fmt.Println("Generating TypeScript code...")
 				err = generator.GenerateTS(result, outDir)
+			case "python":
+				fmt.Println("Generating Python code...")
+				err = generator.GeneratePython(result, outDir)
+			case "csharp":
+				fmt.Println("Generating C# code...")
+				err = generator.GenerateCSharp(result, outDir)
 			default:
 				fmt.Printf("Warning: Language '%s' is not supported yet.\n", lang)
 				continue
