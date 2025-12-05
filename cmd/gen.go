@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	languages []string
-	outDir    string
+	languages  []string
+	outDir     string
+	withProtoc bool
 )
 
 var genCmd = &cobra.Command{
@@ -20,6 +21,17 @@ var genCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Generating code for languages: %v\n", languages)
 		fmt.Printf("Output directory: %s\n", outDir)
+
+		// Run protoc if requested
+		if withProtoc {
+			fmt.Println("Running protoc...")
+			if err := generator.GenerateProtoc("packet.proto", languages, outDir); err != nil {
+				fmt.Printf("Warning: Failed to run protoc: %v\n", err)
+				fmt.Println("Make sure you have 'protoc' and necessary plugins installed.")
+			} else {
+				fmt.Println("Successfully generated protobuf bindings.")
+			}
+		}
 
 		// Parse packet.proto
 		result, err := parser.Parse("packet.proto")
@@ -68,6 +80,7 @@ func init() {
 
 	genCmd.Flags().StringSliceVar(&languages, "lang", []string{}, "Target languages (go, ts, python, csharp)")
 	genCmd.Flags().StringVar(&outDir, "out", "./gen", "Output directory")
+	genCmd.Flags().BoolVar(&withProtoc, "protoc", false, "Generate protobuf bindings using protoc")
 
 	genCmd.MarkFlagRequired("lang")
 }

@@ -15,6 +15,8 @@ var initCmd = &cobra.Command{
 		content := `syntax = "proto3";
 package packet;
 
+option go_package = "./;packet";
+
 // [헤더]: 모든 패킷에 포함될 메타데이터
 message Header {
   int64 timestamp = 1;
