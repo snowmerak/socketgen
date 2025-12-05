@@ -33,6 +33,30 @@ export function dispatch(data: Uint8Array, handler: IPacketHandler) {
   }
 {{- end }}
 }
+
+export interface IPacketStream {
+  readPacket(): Promise<Uint8Array>;
+  writePacket(data: Uint8Array): Promise<void>;
+}
+
+export async function serve(stream: IPacketStream, handler: IPacketHandler) {
+  while (true) {
+    const data = await stream.readPacket();
+    dispatch(data, handler);
+  }
+}
+
+{{- range .Payloads }}
+
+export async function send{{.Name}}(stream: IPacketStream, header: Header, msg: {{.Name}}): Promise<void> {
+  const pkt = GamePacket.fromPartial({
+    header: header,
+    {{.FieldName | toCamelCase}}: msg,
+  });
+  const data = GamePacket.encode(pkt).finish();
+  await stream.writePacket(data);
+}
+{{- end }}
 `
 
 func GenerateTS(result *parser.ParseResult, outDir string) error {
