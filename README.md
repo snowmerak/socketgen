@@ -91,7 +91,12 @@ socketgen gen --lang=go,ts,csharp --out=./gen --protoc
 
 ## 🚀 Generated Code Examples
 
-SocketGen generates idiomatic code for each language.
+SocketGen generates idiomatic code for each language, including:
+1.  **Dispatcher:** Routes incoming packets to the correct handler method.
+2.  **Handler Interface:** Defines the methods you need to implement.
+3.  **PacketStream Interface:** Abstraction for reading/writing packets (you implement the network layer).
+4.  **Serve Loop:** A helper to continuously read and dispatch packets.
+5.  **Send Helpers:** Type-safe functions to wrap and send messages.
 
 <details open>
 <summary><strong>Go</strong></summary>
@@ -104,24 +109,37 @@ type PacketHandler interface {
     OnChatMsg(header *Header, msg *ChatMsg)
 }
 
-// 2. Dispatcher
-func Dispatch(data []byte, handler PacketHandler) error {
-    pkt := &GamePacket{}
-    if err := proto.Unmarshal(data, pkt); err != nil {
+// 2. PacketStream Interface (Implement this for TCP/WebSocket)
+type PacketStream interface {
+    ReadPacket() ([]byte, error)
+    WritePacket([]byte) error
+}
+
+// 3. Serve Loop
+func Serve(stream PacketStream, handler PacketHandler) error {
+    for {
+        data, err := stream.ReadPacket()
+        if err != nil {
+            return err
+        }
+        if err := Dispatch(data, handler); err != nil {
+            fmt.Println(fmt.Errorf("dispatch error: %w", err))
+            continue
+        }
+    }
+}
+
+// 4. Send Helper
+func SendLoginReq(stream PacketStream, header *Header, msg *LoginReq) error {
+    pkt := &GamePacket{
+        Header: header,
+        Payload: &GamePacket_LoginReq{LoginReq: msg},
+    }
+    data, err := proto.Marshal(pkt)
+    if err != nil {
         return err
     }
-
-    switch payload := pkt.Payload.(type) {
-    case *GamePacket_LoginReq:
-        handler.OnLoginReq(pkt.Header, payload.LoginReq)
-    case *GamePacket_LoginRes:
-        handler.OnLoginRes(pkt.Header, payload.LoginRes)
-    case *GamePacket_ChatMsg:
-        handler.OnChatMsg(pkt.Header, payload.ChatMsg)
-    default:
-        return fmt.Errorf("unknown packet type")
-    }
-    return nil
+    return stream.WritePacket(data)
 }
 ```
 </details>
@@ -132,21 +150,28 @@ func Dispatch(data []byte, handler PacketHandler) error {
 ```typescript
 export interface IPacketHandler {
   onLoginReq(header: Header, msg: LoginReq): void;
-  onLoginRes(header: Header, msg: LoginRes): void;
-  onChatMsg(header: Header, msg: ChatMsg): void;
+  // ...
 }
 
-export function dispatch(data: Uint8Array, handler: IPacketHandler) {
-  const pkt = GamePacket.decode(data);
-  if (pkt.loginReq) {
-    handler.onLoginReq(pkt.header!, pkt.loginReq!);
+export interface IPacketStream {
+  readPacket(): Promise<Uint8Array>;
+  writePacket(data: Uint8Array): Promise<void>;
+}
+
+export async function serve(stream: IPacketStream, handler: IPacketHandler) {
+  while (true) {
+    const data = await stream.readPacket();
+    dispatch(data, handler);
   }
-  else if (pkt.loginRes) {
-    handler.onLoginRes(pkt.header!, pkt.loginRes!);
-  }
-  else if (pkt.chatMsg) {
-    handler.onChatMsg(pkt.header!, pkt.chatMsg!);
-  }
+}
+
+export async function sendLoginReq(stream: IPacketStream, header: Header, msg: LoginReq): Promise<void> {
+  const pkt = GamePacket.fromPartial({
+    header: header,
+    loginReq: msg,
+  });
+  const data = GamePacket.encode(pkt).finish();
+  await stream.writePacket(data);
 }
 ```
 </details>
@@ -155,28 +180,27 @@ export function dispatch(data: Uint8Array, handler: IPacketHandler) {
 <summary><strong>Python</strong></summary>
 
 ```python
-class PacketHandler(ABC):
+class PacketStream(ABC):
     @abstractmethod
-    def on_login_req(self, header, msg):
+    def read_packet(self) -> bytes:
         pass
     @abstractmethod
-    def on_login_res(self, header, msg):
-        pass
-    @abstractmethod
-    def on_chat_msg(self, header, msg):
+    def write_packet(self, data: bytes):
         pass
 
-def dispatch(data: bytes, handler: PacketHandler):
+def serve(stream: PacketStream, handler: PacketHandler):
+    while True:
+        data = stream.read_packet()
+        try:
+            dispatch(data, handler)
+        except Exception as e:
+            print(f"Dispatch error: {e}")
+
+def send_login_req(stream: PacketStream, header, msg):
     pkt = GamePacket()
-    pkt.ParseFromString(data)
-    
-    type_str = pkt.WhichOneof('payload')
-    if type_str == 'login_req':
-        handler.on_login_req(pkt.header, pkt.login_req)
-    elif type_str == 'login_res':
-        handler.on_login_res(pkt.header, pkt.login_res)
-    elif type_str == 'chat_msg':
-        handler.on_chat_msg(pkt.header, pkt.chat_msg)
+    pkt.header.CopyFrom(header)
+    pkt.login_req.CopyFrom(msg)
+    stream.write_packet(pkt.SerializeToString())
 ```
 </details>
 
@@ -184,27 +208,29 @@ def dispatch(data: bytes, handler: PacketHandler):
 <summary><strong>C#</strong></summary>
 
 ```csharp
-public interface IPacketHandler {
-    void OnLoginReq(Header header, LoginReq msg);
-    void OnLoginRes(Header header, LoginRes msg);
-    void OnChatMsg(Header header, ChatMsg msg);
+public interface IPacketStream {
+    byte[] ReadPacket();
+    void WritePacket(byte[] data);
 }
 
 public static class PacketDispatcher {
-    public static void Dispatch(byte[] data, IPacketHandler handler) {
-        var pkt = GamePacket.Parser.ParseFrom(data);
-        
-        switch (pkt.PayloadCase) {
-            case GamePacket.PayloadOneofCase.LoginReq:
-                handler.OnLoginReq(pkt.Header, pkt.LoginReq);
-                break;
-            case GamePacket.PayloadOneofCase.LoginRes:
-                handler.OnLoginRes(pkt.Header, pkt.LoginRes);
-                break;
-            case GamePacket.PayloadOneofCase.ChatMsg:
-                handler.OnChatMsg(pkt.Header, pkt.ChatMsg);
-                break;
+    public static void Serve(IPacketStream stream, IPacketHandler handler) {
+        while (true) {
+            var data = stream.ReadPacket();
+            try {
+                Dispatch(data, handler);
+            } catch (System.Exception e) {
+                System.Console.WriteLine($"Dispatch error: {e}");
+            }
         }
+    }
+
+    public static void SendLoginReq(IPacketStream stream, Header header, LoginReq msg) {
+        var pkt = new GamePacket {
+            Header = header,
+            LoginReq = msg
+        };
+        stream.WritePacket(pkt.ToByteArray());
     }
 }
 ```
@@ -214,27 +240,29 @@ public static class PacketDispatcher {
 <summary><strong>Java</strong></summary>
 
 ```java
-public interface PacketHandler {
-    void onLoginReq(Header header, LoginReq msg);
-    void onLoginRes(Header header, LoginRes msg);
-    void onChatMsg(Header header, ChatMsg msg);
+interface PacketStream {
+    byte[] readPacket() throws java.io.IOException;
+    void writePacket(byte[] data) throws java.io.IOException;
 }
 
 class PacketDispatcher {
-    public static void dispatch(byte[] data, PacketHandler handler) throws InvalidProtocolBufferException {
-        GamePacket pkt = GamePacket.parseFrom(data);
-        
-        switch (pkt.getPayloadCase()) {
-            case LOGIN_REQ:
-                handler.onLoginReq(pkt.getHeader(), pkt.getLoginReq());
-                break;
-            case LOGIN_RES:
-                handler.onLoginRes(pkt.getHeader(), pkt.getLoginRes());
-                break;
-            case CHAT_MSG:
-                handler.onChatMsg(pkt.getHeader(), pkt.getChatMsg());
-                break;
+    public static void serve(PacketStream stream, PacketHandler handler) {
+        while (true) {
+            try {
+                byte[] data = stream.readPacket();
+                dispatch(data, handler);
+            } catch (Exception e) {
+                System.err.println("Dispatch error: " + e.getMessage());
+            }
         }
+    }
+
+    public static void sendLoginReq(PacketStream stream, Header header, LoginReq msg) throws java.io.IOException {
+        GamePacket pkt = GamePacket.newBuilder()
+            .setHeader(header)
+            .setLoginReq(msg)
+            .build();
+        stream.writePacket(pkt.toByteArray());
     }
 }
 ```
