@@ -64,6 +64,14 @@ func GenerateProtoc(protoFile string, languages []string, outDir string) error {
 				"--ruby_out=" + outDir,
 				protoFile,
 			}
+		case "kotlin":
+			// Requires protoc-gen-kotlin and usually java_out as well since Kotlin generated code depends on Java
+			// We will generate both java and kotlin code in the output directory
+			args = []string{
+				"--java_out=" + outDir,
+				"--kotlin_out=" + outDir,
+				protoFile,
+			}
 		default:
 			continue
 		}

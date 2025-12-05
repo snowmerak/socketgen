@@ -70,6 +70,9 @@ var genCmd = &cobra.Command{
 			case "ruby":
 				fmt.Println("Generating Ruby code...")
 				err = generator.GenerateRuby(result, outDir)
+			case "kotlin":
+				fmt.Println("Generating Kotlin code...")
+				err = generator.GenerateKotlin(result, outDir)
 			default:
 				fmt.Printf("Warning: Language '%s' is not supported yet.\n", lang)
 				continue
@@ -87,7 +90,7 @@ var genCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(genCmd)
 
-	genCmd.Flags().StringSliceVar(&languages, "lang", []string{}, "Target languages (go, ts, python, csharp, dart, php, ruby)")
+	genCmd.Flags().StringSliceVar(&languages, "lang", []string{}, "Target languages (go, ts, python, csharp, dart, php, ruby, kotlin)")
 	genCmd.Flags().StringVar(&outDir, "out", "./gen", "Output directory")
 	genCmd.Flags().BoolVar(&withProtoc, "protoc", false, "Generate protobuf bindings using protoc")
 
