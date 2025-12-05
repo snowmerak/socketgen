@@ -23,7 +23,42 @@ module PacketDispatcher
 {{- end }}
     end
   end
+
+  def self.serve(stream, handler)
+    loop do
+      begin
+        data = stream.read_packet
+        dispatch(data, handler)
+      rescue => e
+        puts "Dispatch error: #{e.message}"
+      end
+    end
+  end
+
+{{- range .Payloads }}
+
+  def self.send_{{.FieldName}}(stream, header, msg)
+    pkt = {{$.PackageName | toPascalCase}}::GamePacket.new(
+      header: header,
+      {{.FieldName}}: msg
+    )
+    stream.write_packet({{$.PackageName | toPascalCase}}::GamePacket.encode(pkt))
+  end
+{{- end }}
 end
+
+# Interface documentation for PacketStream
+# class PacketStream
+#   def read_packet; end
+#   def write_packet(data); end
+# end
+
+# Interface documentation for PacketHandler
+# class PacketHandler
+{{- range .Payloads }}
+#   def on_{{.FieldName}}(header, msg); end
+{{- end }}
+# end
 `
 
 func GenerateRuby(result *parser.ParseResult, outDir string) error {

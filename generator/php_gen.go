@@ -38,6 +38,32 @@ class PacketDispatcher {
 {{- end }}
         }
     }
+
+    public static function serve(PacketStream $stream, PacketHandler $handler) {
+        while (true) {
+            try {
+                $data = $stream->readPacket();
+                self::dispatch($data, $handler);
+            } catch (\Exception $e) {
+                echo "Dispatch error: " . $e->getMessage() . "\n";
+            }
+        }
+    }
+
+{{- range .Payloads }}
+
+    public static function send{{.Name}}(PacketStream $stream, Header $header, {{.Name}} $msg) {
+        $pkt = new GamePacket();
+        $pkt->setHeader($header);
+        $pkt->set{{.Name}}($msg);
+        $stream->writePacket($pkt->serializeToString());
+    }
+{{- end }}
+}
+
+interface PacketStream {
+    public function readPacket(): string;
+    public function writePacket(string $data): void;
 }
 `
 

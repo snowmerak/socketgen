@@ -40,6 +40,33 @@ class PacketDispatcher {
                 break;
         }
     }
+
+    public static void serve(PacketStream stream, PacketHandler handler) {
+        while (true) {
+            try {
+                byte[] data = stream.readPacket();
+                dispatch(data, handler);
+            } catch (Exception e) {
+                System.err.println("Dispatch error: " + e.getMessage());
+            }
+        }
+    }
+
+{{- range .Payloads }}
+
+    public static void send{{.Name}}(PacketStream stream, Header header, {{.Name}} msg) throws java.io.IOException {
+        GamePacket pkt = GamePacket.newBuilder()
+            .setHeader(header)
+            .set{{.Name}}(msg)
+            .build();
+        stream.writePacket(pkt.toByteArray());
+    }
+{{- end }}
+}
+
+interface PacketStream {
+    byte[] readPacket() throws java.io.IOException;
+    void writePacket(byte[] data) throws java.io.IOException;
 }
 `
 

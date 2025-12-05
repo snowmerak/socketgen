@@ -30,6 +30,32 @@ def dispatch(data: bytes, handler: PacketHandler):
     {{if eq $i 0}}if{{else}}elif{{end}} type_str == '{{.FieldName}}':
         handler.on_{{.FieldName}}(pkt.header, pkt.{{.FieldName}})
 {{- end }}
+
+class PacketStream(ABC):
+    @abstractmethod
+    def read_packet(self) -> bytes:
+        pass
+
+    @abstractmethod
+    def write_packet(self, data: bytes):
+        pass
+
+def serve(stream: PacketStream, handler: PacketHandler):
+    while True:
+        data = stream.read_packet()
+        try:
+            dispatch(data, handler)
+        except Exception as e:
+            print(f"Dispatch error: {e}")
+
+{{- range .Payloads }}
+
+def send_{{.FieldName}}(stream: PacketStream, header, msg):
+    pkt = GamePacket()
+    pkt.header.CopyFrom(header)
+    pkt.{{.FieldName}}.CopyFrom(msg)
+    stream.write_packet(pkt.SerializeToString())
+{{- end }}
 `
 
 func GeneratePython(result *parser.ParseResult, outDir string) error {

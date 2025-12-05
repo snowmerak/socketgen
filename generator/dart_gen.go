@@ -31,6 +31,32 @@ void dispatch(List<int> data, PacketHandler handler) {
       break;
   }
 }
+
+abstract class PacketStream {
+  Future<List<int>> readPacket();
+  Future<void> writePacket(List<int> data);
+}
+
+Future<void> serve(PacketStream stream, PacketHandler handler) async {
+  while (true) {
+    try {
+      final data = await stream.readPacket();
+      dispatch(data, handler);
+    } catch (e) {
+      print('Dispatch error: $e');
+    }
+  }
+}
+
+{{- range .Payloads }}
+
+Future<void> send{{.Name}}(PacketStream stream, Header header, {{.Name}} msg) async {
+  final pkt = GamePacket()
+    ..header = header
+    ..{{.FieldName | toCamelCase}} = msg;
+  await stream.writePacket(pkt.writeToBuffer());
+}
+{{- end }}
 `
 
 func GenerateDart(result *parser.ParseResult, outDir string) error {

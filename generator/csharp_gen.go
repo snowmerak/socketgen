@@ -31,6 +31,33 @@ public static class PacketDispatcher {
 {{- end }}
         }
     }
+
+    public static void Serve(IPacketStream stream, IPacketHandler handler) {
+        while (true) {
+            var data = stream.ReadPacket();
+            try {
+                Dispatch(data, handler);
+            } catch (System.Exception e) {
+                System.Console.WriteLine($"Dispatch error: {e}");
+            }
+        }
+    }
+
+{{- range .Payloads }}
+
+    public static void Send{{.Name}}(IPacketStream stream, Header header, {{.Name}} msg) {
+        var pkt = new GamePacket {
+            Header = header,
+            {{.Name}} = msg
+        };
+        stream.WritePacket(pkt.ToByteArray());
+    }
+{{- end }}
+}
+
+public interface IPacketStream {
+    byte[] ReadPacket();
+    void WritePacket(byte[] data);
 }
 `
 

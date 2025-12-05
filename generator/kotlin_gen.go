@@ -37,6 +37,33 @@ object PacketDispatcher {
             else -> {} // Handle unknown case
         }
     }
+
+    fun serve(stream: PacketStream, handler: PacketHandler) {
+        while (true) {
+            try {
+                val data = stream.readPacket()
+                dispatch(data, handler)
+            } catch (e: Exception) {
+                println("Dispatch error: ${e.message}")
+            }
+        }
+    }
+
+{{- range .Payloads }}
+
+    fun send{{.Name}}(stream: PacketStream, header: Header, msg: {{.Name}}) {
+        val pkt = GamePacket.newBuilder()
+            .setHeader(header)
+            .set{{.Name}}(msg)
+            .build()
+        stream.writePacket(pkt.toByteArray())
+    }
+{{- end }}
+}
+
+interface PacketStream {
+    fun readPacket(): ByteArray
+    fun writePacket(data: ByteArray)
 }
 `
 
