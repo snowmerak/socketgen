@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"text/template"
-	"unicode"
 
 	"github.com/snowmerak/socketgen/parser"
 )
@@ -35,27 +33,6 @@ public static class PacketDispatcher {
     }
 }
 `
-
-func toPascalCase(s string) string {
-	// snake_case to PascalCase
-	// e.g. packet -> Packet, login_req -> LoginReq
-
-	var result strings.Builder
-	nextUpper := true
-	for _, r := range s {
-		if r == '_' {
-			nextUpper = true
-			continue
-		}
-		if nextUpper {
-			result.WriteRune(unicode.ToUpper(r))
-			nextUpper = false
-		} else {
-			result.WriteRune(r)
-		}
-	}
-	return result.String()
-}
 
 func GenerateCSharp(result *parser.ParseResult, outDir string) error {
 	funcMap := template.FuncMap{

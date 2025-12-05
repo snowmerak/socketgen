@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"text/template"
-	"unicode"
 
 	"github.com/snowmerak/socketgen/parser"
 )
@@ -36,32 +34,6 @@ export function dispatch(data: Uint8Array, handler: IPacketHandler) {
 {{- end }}
 }
 `
-
-func toCamelCase(s string) string {
-	// snake_case to camelCase
-	// e.g. login_req -> loginReq
-	// If it's already camelCase or PascalCase, we might need to handle it.
-	// But proto field names are usually snake_case.
-
-	// Simple implementation for snake_case to camelCase
-	var result strings.Builder
-	nextUpper := false
-	for i, r := range s {
-		if r == '_' {
-			nextUpper = true
-			continue
-		}
-		if i == 0 {
-			result.WriteRune(unicode.ToLower(r))
-		} else if nextUpper {
-			result.WriteRune(unicode.ToUpper(r))
-			nextUpper = false
-		} else {
-			result.WriteRune(r)
-		}
-	}
-	return result.String()
-}
 
 func GenerateTS(result *parser.ParseResult, outDir string) error {
 	funcMap := template.FuncMap{

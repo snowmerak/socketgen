@@ -46,6 +46,24 @@ func GenerateProtoc(protoFile string, languages []string, outDir string) error {
 				"--ts_proto_opt=esModuleInterop=true",
 				protoFile,
 			}
+		case "dart":
+			// Requires protoc-gen-dart (pub global activate protoc_plugin)
+			args = []string{
+				"--dart_out=" + outDir,
+				protoFile,
+			}
+		case "php":
+			// Built-in support
+			args = []string{
+				"--php_out=" + outDir,
+				protoFile,
+			}
+		case "ruby":
+			// Built-in support
+			args = []string{
+				"--ruby_out=" + outDir,
+				protoFile,
+			}
 		default:
 			continue
 		}
