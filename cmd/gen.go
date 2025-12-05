@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/snowmerak/socketgen/generator"
 	"github.com/snowmerak/socketgen/parser"
 	"github.com/spf13/cobra"
 )
@@ -33,7 +34,26 @@ var genCmd = &cobra.Command{
 			fmt.Printf(" - %s (Field: %s, Type: %s)\n", p.Name, p.FieldName, p.FullName)
 		}
 
-		// TODO: Implement code generation logic
+		for _, lang := range languages {
+			var err error
+			switch lang {
+			case "go":
+				fmt.Println("Generating Go code...")
+				err = generator.GenerateGo(result, outDir)
+			case "ts":
+				fmt.Println("Generating TypeScript code...")
+				err = generator.GenerateTS(result, outDir)
+			default:
+				fmt.Printf("Warning: Language '%s' is not supported yet.\n", lang)
+				continue
+			}
+
+			if err != nil {
+				fmt.Printf("Error generating %s code: %v\n", lang, err)
+			} else {
+				fmt.Printf("Successfully generated %s code.\n", lang)
+			}
+		}
 	},
 }
 
