@@ -72,6 +72,12 @@ func GenerateProtoc(protoFile string, languages []string, outDir string) error {
 				"--kotlin_out=" + outDir,
 				protoFile,
 			}
+		case "java":
+			// Built-in support
+			args = []string{
+				"--java_out=" + outDir,
+				protoFile,
+			}
 		default:
 			continue
 		}
