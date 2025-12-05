@@ -89,23 +89,22 @@ socketgen gen --lang=go,ts,csharp --out=./gen --protoc
 
 -----
 
-## 🚀 Generated Code Example
+## 🚀 Generated Code Examples
 
-Here is what SocketGen creates for you (e.g., in **Go**):
+SocketGen generates idiomatic code for each language.
 
-**1. The Handler Interface** (You implement this)
+<details open>
+<summary><strong>Go</strong></summary>
 
 ```go
+// 1. Handler Interface
 type PacketHandler interface {
     OnLoginReq(header *Header, msg *LoginReq)
     OnLoginRes(header *Header, msg *LoginRes)
     OnChatMsg(header *Header, msg *ChatMsg)
 }
-```
 
-**2. The Dispatcher** (Auto-generated)
-
-```go
+// 2. Dispatcher
 func Dispatch(data []byte, handler PacketHandler) error {
     pkt := &GamePacket{}
     if err := proto.Unmarshal(data, pkt); err != nil {
@@ -125,6 +124,121 @@ func Dispatch(data []byte, handler PacketHandler) error {
     return nil
 }
 ```
+</details>
+
+<details>
+<summary><strong>TypeScript</strong></summary>
+
+```typescript
+export interface IPacketHandler {
+  onLoginReq(header: Header, msg: LoginReq): void;
+  onLoginRes(header: Header, msg: LoginRes): void;
+  onChatMsg(header: Header, msg: ChatMsg): void;
+}
+
+export function dispatch(data: Uint8Array, handler: IPacketHandler) {
+  const pkt = GamePacket.decode(data);
+  if (pkt.loginReq) {
+    handler.onLoginReq(pkt.header!, pkt.loginReq!);
+  }
+  else if (pkt.loginRes) {
+    handler.onLoginRes(pkt.header!, pkt.loginRes!);
+  }
+  else if (pkt.chatMsg) {
+    handler.onChatMsg(pkt.header!, pkt.chatMsg!);
+  }
+}
+```
+</details>
+
+<details>
+<summary><strong>Python</strong></summary>
+
+```python
+class PacketHandler(ABC):
+    @abstractmethod
+    def on_login_req(self, header, msg):
+        pass
+    @abstractmethod
+    def on_login_res(self, header, msg):
+        pass
+    @abstractmethod
+    def on_chat_msg(self, header, msg):
+        pass
+
+def dispatch(data: bytes, handler: PacketHandler):
+    pkt = GamePacket()
+    pkt.ParseFromString(data)
+    
+    type_str = pkt.WhichOneof('payload')
+    if type_str == 'login_req':
+        handler.on_login_req(pkt.header, pkt.login_req)
+    elif type_str == 'login_res':
+        handler.on_login_res(pkt.header, pkt.login_res)
+    elif type_str == 'chat_msg':
+        handler.on_chat_msg(pkt.header, pkt.chat_msg)
+```
+</details>
+
+<details>
+<summary><strong>C#</strong></summary>
+
+```csharp
+public interface IPacketHandler {
+    void OnLoginReq(Header header, LoginReq msg);
+    void OnLoginRes(Header header, LoginRes msg);
+    void OnChatMsg(Header header, ChatMsg msg);
+}
+
+public static class PacketDispatcher {
+    public static void Dispatch(byte[] data, IPacketHandler handler) {
+        var pkt = GamePacket.Parser.ParseFrom(data);
+        
+        switch (pkt.PayloadCase) {
+            case GamePacket.PayloadOneofCase.LoginReq:
+                handler.OnLoginReq(pkt.Header, pkt.LoginReq);
+                break;
+            case GamePacket.PayloadOneofCase.LoginRes:
+                handler.OnLoginRes(pkt.Header, pkt.LoginRes);
+                break;
+            case GamePacket.PayloadOneofCase.ChatMsg:
+                handler.OnChatMsg(pkt.Header, pkt.ChatMsg);
+                break;
+        }
+    }
+}
+```
+</details>
+
+<details>
+<summary><strong>Java</strong></summary>
+
+```java
+public interface PacketHandler {
+    void onLoginReq(Header header, LoginReq msg);
+    void onLoginRes(Header header, LoginRes msg);
+    void onChatMsg(Header header, ChatMsg msg);
+}
+
+class PacketDispatcher {
+    public static void dispatch(byte[] data, PacketHandler handler) throws InvalidProtocolBufferException {
+        GamePacket pkt = GamePacket.parseFrom(data);
+        
+        switch (pkt.getPayloadCase()) {
+            case LOGIN_REQ:
+                handler.onLoginReq(pkt.getHeader(), pkt.getLoginReq());
+                break;
+            case LOGIN_RES:
+                handler.onLoginRes(pkt.getHeader(), pkt.getLoginRes());
+                break;
+            case CHAT_MSG:
+                handler.onChatMsg(pkt.getHeader(), pkt.getChatMsg());
+                break;
+        }
+    }
+}
+```
+</details>
 
 -----
 
