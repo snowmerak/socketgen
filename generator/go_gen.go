@@ -52,7 +52,8 @@ func Serve(stream PacketStream, handler PacketHandler) error {
 			return err
 		}
 		if err := Dispatch(data, handler); err != nil {
-			return err
+			fmt.Println(fmt.Errorf("dispatch error: %w", err))
+			continue
 		}
 	}
 }
