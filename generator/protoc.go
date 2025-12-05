@@ -39,14 +39,11 @@ func GenerateProtoc(protoFile string, languages []string, outDir string) error {
 				protoFile,
 			}
 		case "ts":
-			// Requires a plugin. We'll assume 'protoc-gen-ts' or similar is available via built-in or npm.
-			// Common plugins: ts-proto, protoc-gen-ts
-			// For now, let's try to use a generic plugin flag if the user has one,
-			// but since we can't guess, we might skip or try a common one.
-			// Let's try 'ts_out' which implies protoc-gen-ts is in PATH.
-			// If it fails, we'll return an error.
+			// Uses ts-proto plugin (npm install -g ts-proto)
+			// The plugin binary 'protoc-gen-ts_proto' must be in PATH.
 			args = []string{
-				"--ts_out=" + outDir,
+				"--ts_proto_out=" + outDir,
+				"--ts_proto_opt=esModuleInterop=true",
 				protoFile,
 			}
 		default:
