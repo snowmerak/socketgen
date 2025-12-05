@@ -254,4 +254,4 @@ If you use the `--protoc` flag, you must have the Protocol Buffers compiler and 
 
 ## License
 
-MIT
+MPL 2.0
